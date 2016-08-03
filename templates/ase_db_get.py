@@ -1,8 +1,12 @@
-from ase.db import connect
+#!/usr/bin/env python
+###############################################
+# ase_db_get.py
+# Template for selecting a list of atoms objects from an ASE DB
 
 db_path = "{{ db_path }}"
 select = "{{ select }}"
 
+from ase.db import connect
 db = connect(db_path)
 
 images = []
