@@ -2,6 +2,7 @@ import json
 import os
 import os.path
 import time
+import sys
 
 from ase import Atoms
 from ase.db import connect
@@ -119,6 +120,8 @@ def candidates_combos(atoms, edge=None, pore_size=None):
 
     if pore_size is not None:
         pores = combinations(indices, pore_size)
+        print(sum([1 for p in pores]))
+        pores = combinations(indices, pore_size)
         constraint_check(pores)
     else:
         for i in range(1, len(indices)):
@@ -226,14 +229,17 @@ def closest_atom_to_height(atoms, height):
 
 
 def db_update(db_path, dft_path, delete=False, silent=False):
-    """Update the database to include calculations nested in dft_path."""
+    """Update the database to include Vasp() calculations nested in dft_path."""
     VASPRC['mode'] = None
     db = connect(db_path)
     old_size = sum(1 for _ in db.select())
 
     db_paths = []
     for d in db.select():
-        db_paths.append(d.data.path)
+        try:
+            db_paths.append(d.data.path)
+        except:
+            pass
 
     for path in utils.calc_paths(dft_path):
         if os.path.abspath(path) in db_paths:
@@ -248,9 +254,17 @@ def db_update(db_path, dft_path, delete=False, silent=False):
                 if not silent:
                     print("Dead output file: {}. Deleted: {}".format(dead_file, delete))
         else:
+            ctime = calc.get_elapsed_time()
+
+            # The write_db method throws an AttributeError for new calcs. Remove this to debug.
+            old_stdout = sys.stdout
+            sys.stdout = open(os.devnull, "w")
             calc.write_db(db_path, parser='=',
                         overwrite=False,
-                        data={'ctime': calc.get_elapsed_time()})
+                        data={'ctime': ctime})
+            sys.stdout.close()
+            sys.stdout = old_stdout
+
             if not silent:
                 print("Added calc to DB: {}".format(path))
 
@@ -260,6 +274,8 @@ def db_update(db_path, dft_path, delete=False, silent=False):
         print("{} total entries. {} new entries added.".format(new_size, added))
 
 
+
+
 def db_duplicates(db_path, delete=False, reverse=False, silent=False):
     """Return duplicate IDs based on calculation paths."""
     db = connect(db_path)
@@ -267,7 +283,10 @@ def db_duplicates(db_path, delete=False, reverse=False, silent=False):
 
     db_paths = {}
     for d in db.select():
-        db_paths[d.id] = d.data.path
+        try:
+            db_paths[d.id] = d.data.path
+        except:
+            pass
 
     keep = {}
     items = reversed(db_paths.items()) if reverse else db_paths.items()
@@ -384,6 +403,18 @@ def pore_string(pore, leading_zeros=3):
     else:
         return name
 
+
+def parse_pore_string(porestr, leading_zeros=3):
+    """Parse a pore string from into a list of atom inidces."""
+    start = 0
+    if porestr[0] == 's':
+        start = 1
+
+    n = leading_zeros
+    pore = [int(porestr[i:i+n]) for i in range(start, len(porestr), n)]
+    return pore
+
+
 def set_vacuum(atoms, vacuum):
     """Center atoms in the z-direction in a cell of size vacuum.
 
@@ -448,3 +479,19 @@ def structure(atoms, layers=1, molecs=0, thresh=2.0):
 
     return structure
 
+
+def is_unique(row, data):
+    """Check the row against the data file containing uniques."""
+    unique = {'mat': row.mat,
+              'layers': row.layers,
+              'size': row.size,
+              'pore': row.pore,
+              'porestr': row.porestr}
+
+    is_unique = False
+    for dat in data['uniques']:
+        if dat == unique:
+            is_unique = True
+            break
+
+    return is_unique

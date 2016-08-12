@@ -22,12 +22,19 @@ def bp(info=None):
         if all(isinstance(i, Atoms) for i in info):
             view(info)
         else:
-            for i in info:
-                print(i)
+            print(info)
     elif info is not None:
         print(info)
 
     sys.exit()
+
+
+def print_code(code):
+    """Print an orgmode code block containing the given code."""
+    print("#+BEGIN_SRC python :results output org drawer")
+    print(code)
+    print("#+END_SRC")
+
 
 
 def broken_calcs(dft_path, delete=False, silent=False):
@@ -140,6 +147,7 @@ cd $PBS_O_WORKDIR
     subprocess.call(['qsub', submit_path])
     time.sleep(1)
     os.remove(submit_path)
+    print("Job submitted.")
 
 
 def set_vacuum(atoms, vacuum):
