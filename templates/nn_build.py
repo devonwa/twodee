@@ -13,6 +13,8 @@ iteration = {{ iteration }}
 framework = {{ framework }}
 work_dir = "{{ work_dir }}"
 db_path = "{{ db_path }}"
+label = "{{ label }}"
+dblabel = "{{ dblabel }}"
 cutoff = {{ cutoff }}
 energy_rmse = {{ energy_rmse }}
 force_rmse = {{ force_rmse }}
@@ -31,8 +33,8 @@ for d in db.select(['iteration<={}'.format(iteration, 'train_set=True')]):
 
 # Build Amp object
 framework_str = "-".join([str(f) for f in framework])
-label = "networks/iter={0}/{1}/{1}".format(iteration, framework_str)
-dblabel = "networks/iter={0}/iter={0}".format(iteration)
+label = label
+dblabel = dblabel
 desc = Gaussian(cutoff=cutoff)
 model = NeuralNetwork(hiddenlayers=framework)
 calc = Amp(label=label,
