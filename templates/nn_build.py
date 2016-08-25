@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 from amp import Amp
-from amp.descriptor.gaussian import Gaussian
-from amp.model import LossFunction
-from amp.model.neuralnetwork import NeuralNetwork
-from amp.utilities import Annealer
+from amp import SimulatedAnnealing
+from amp.descriptor import Gaussian
+from amp.regression import NeuralNetwork
 from ase.db import connect
 import os
 import twodee as td
@@ -26,7 +25,7 @@ os.chdir(work_dir)
 # Get atoms from the database
 images = []
 db = connect(db_path)
-for d in db.select(['iteration<={}'.format(iteration, 'train_set=True')]):
+for d in db.select(['iteration<={}'.format(iteration), 'train_set=True']):
     atoms = db.get_atoms(d.id)
     del atoms.constraints
     images.append(atoms)
@@ -40,14 +39,14 @@ model = NeuralNetwork(hiddenlayers=framework)
 calc = Amp(label=label,
            dblabel=dblabel,
            descriptor=desc,
-           model=model,
-	   cores=cores)
-loss = LossFunction(convergence={'energy_rmse': energy_rmse,
-                                 'force_rmse': force_rmse})
-calc.model.lossfunction = loss
+           regression=model)
            
-# Perform simulated annealing for global search
-Annealer(calc=calc, images=images)
-
 # Train the network
-calc.train(images=images)
+calc.train(images=images,
+           data_format='db',
+           cores=cores,
+           energy_goal=energy_rmse,
+           force_goal=force_rmse,
+	   global_search=SimulatedAnnealing(temperature=70,
+					    steps=50),
+           extend_variables=False)

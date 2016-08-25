@@ -1,48 +1,47 @@
 #!/usr/bin/env python
 from amp import Amp
-from amp.descriptor.gaussian import Gaussian
-from amp.model import LossFunction
-from amp.model.neuralnetwork import NeuralNetwork
-from amp.utilities import Annealer
 from ase.db import connect
 import os
+import shutil
+
 import twodee as td
 
 # Required arguments from template
 iteration = {{ iteration }}
 framework = {{ framework }}
 work_dir = "{{ work_dir }}"
+load_path = "{{ load_path }}"
 db_path = "{{ db_path }}"
 selection = {{ selection }}
+{% if overwrite %}
+overwrite = {{ overwrite }}
+{% else %}
+overwrite = False
+{% endif %}
+cores = {{ cores }}
 
 # Set working directory
 os.chdir(work_dir)
 
+# Create DB update strings
+update_str = "_".join([str(f) for f in framework])
+update_key = "nn_" + update_str + "_iter{}".format(iteration)
+
+# Load Amp object
+calc = Amp.load(load_path, cores=cores)
+
 # Get atoms from the database
 images = []
-db = connect(db_path)
+new_db = os.path.join(os.path.dirname(load_path), "DB.db")
+shutil.copyfile(db_path, new_db)
+db = connect(new_db)
 for d in db.select(selection):
+    if not overwrite and update_key in d.key_value_pairs.keys():
+        continue
+
     atoms = db.get_atoms(d.id)
-    del atoms.constraints
-    images.append(atoms)
+    atoms.set_calculator(calc)
+    energy = atoms.get_potential_energy()
 
-# Build Amp object
-framework_str = "-".join([str(f) for f in framework])
-label = "networks/iter={0}/{1}/{1}".format(iteration, framework_str)
-dblabel = "networks/iter={0}/iter={0}".format(iteration)
-desc = Gaussian(cutoff=cutoff)
-model = NeuralNetwork(hiddenlayers=framework)
-calc = Amp(label=label,
-           dblabel=dblabel,
-           descriptor=desc,
-           model=model,
-	   cores=cores)
-loss = LossFunction(convergence={'energy_rmse': energy_rmse,
-                                 'force_rmse': force_rmse})
-calc.model.lossfunction = loss
-           
-# Perform simulated annealing for global search
-Annealer(calc=calc, images=images)
-
-# Train the network
-calc.train(images=images)
+    update = {update_key: energy}
+    db.update(d.id, **update)
