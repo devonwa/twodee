@@ -108,8 +108,8 @@ def candidates_combos(atoms, edge=None, pore_size=None):
     indices = [a.index for a in atoms if a.index not in edge]
 
     nblist = NeighborList([graphene_cutoff for i in range(len(atoms))],
-                          bothways=True,
-                          self_interaction=False)
+                           bothways=True,
+                           self_interaction=False)
     nblist.update(atoms)
 
     def constraint_check(pores):
