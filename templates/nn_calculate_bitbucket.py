@@ -28,17 +28,7 @@ update_str = "_".join([str(f) for f in framework])
 update_key = "nn_" + update_str + "_iter{}".format(iteration)
 
 # Load Amp object
-converged = "trained-parameters.json"
-checkpoints = "checkpoint-parameters.json"
-nn_files = os.listdir(load_path)
-
-if converged in nn_files:
-    params = converged
-elif checkpoints in nn_files:
-    params = checkpoints
-
-load_path = os.path.join(load_path, params)
-calc = Amp(load=load_path, cores=cores)
+calc = Amp.load(load_path, cores=cores)
 
 # Get atoms from the database
 images = []

@@ -220,7 +220,8 @@ def print_image(path, data, fig_name=None, caption=None):
 
 
 def write_image(path, data, options=None):
-    file_path = './img/' + path
+    #file_path = './img/' + path
+    file_path = path
     directory = file_path[:file_path.rfind('/')]
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -229,7 +230,7 @@ def write_image(path, data, options=None):
         if data.__name__ == "matplotlib.pyplot":
             data.savefig(file_path)
     elif isinstance(data, Atoms):
-        file_path += '.png'
+        #file_path += '.png'
         ase_write(file_path, data)
 
     else:

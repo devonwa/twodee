@@ -32,14 +32,35 @@ for d in db.select(['iteration<={}'.format(iteration), 'train_set=True']):
 
 # Build Amp object
 framework_str = "-".join([str(f) for f in framework])
-label = label
-dblabel = dblabel
-desc = Gaussian(cutoff=cutoff)
-model = NeuralNetwork(hiddenlayers=framework)
-calc = Amp(label=label,
-           dblabel=dblabel,
-           descriptor=desc,
-           regression=model)
+
+init_params = "initial-parameters.json"
+checkpoints = "checkpoint-parameters.json"
+nn_files = os.listdir(label)
+
+if checkpoints in nn_files:
+    calc = Amp(load=os.path.join(label, checkpoints))
+elif init_params in nn_files:
+    calc = Amp(load=os.path.join(label, init_params))
+else:
+    label = label
+    dblabel = dblabel
+    desc = Gaussian(cutoff=cutoff)
+    model = NeuralNetwork(hiddenlayers=framework)
+    calc = Amp(label=label,
+            dblabel=dblabel,
+            descriptor=desc,
+            regression=model)
+
+
+{% if optimizer %}
+# Change optimization algorithm
+from amp.regression import Regressor
+from scipy.optimize import {{ optimizer }}
+
+regressor = Regressor(optimizer={{ optimizer }})
+calc.model.regressor = regressor
+{% endif %}
+
            
 # Train the network
 calc.train(images=images,
